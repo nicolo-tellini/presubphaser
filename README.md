@@ -76,6 +76,8 @@ The summary is also printed to stdout:
 
 ## Notes
 
+This script and documentation were developed with the assistance of Claude (Anthropic). All code was reviewed and validated by the author.
+
 - Only sequences whose names match `--chrom_regex` are retained. Adjust the regex to exclude unanchored scaffolds (e.g. `chr`).
 - Clustering uses UPGMA (`hclust(..., method = "average")`) on a distance matrix defined as `1 - (shared / max_shared)`.
 - Duplicated BUSCO hits are intentionally included: a BUSCO marked Duplicated across two chromosomes is the core signal of homeology. The `unique()` call only collapses redundant hits of the same BUSCO on the same chromosome (multiple alignment positions on a single sequence), so counts are not inflated.
