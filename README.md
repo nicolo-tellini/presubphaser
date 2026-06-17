@@ -75,11 +75,6 @@ Fist, we run BUSCO to get the `full_table.txt`:
 busco -i GCA_049639985.1_ConBo_ref_v01_genomic.fna -m genome -l eudicotyledons_odb12 -o ConBo_busco -c 16
 ```
 
-A quick look at the `full_table.txt` can give an hint regarding the ploidy of our samples. 
-```bash
-grep Duplicates full_table.txt | cut -f 1 | sort | uniq -c | cut -f2 | uniq -c 
-```
-
 Then, we run `presubphaser.r` with minimum settings. The --chrom_regex corresponds to the tag on the fasta entry
 ```bash
 Rscript presubphaser.r --input full_table.tsv --output output --chrom_regex CM112840
