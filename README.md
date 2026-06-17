@@ -28,7 +28,7 @@ It is reccomended using latest busco dataset (v12).
 ## Usage
 
 ```bash
-Rscript busco_heatmap.R --input full_table.tsv --output <prefix> [--chrom_regex <regex>] [--clusters <k>]
+Rscript presubphaser.r --input full_table.tsv --output <prefix> [--chrom_regex <regex>] [--clusters <k>]
 ```
 
 ### Arguments
@@ -64,15 +64,22 @@ Rscript presubphaser.r --input full_table.tsv --output eriogonum --chrom_regex c
 | `<prefix>.heatmap_clustered.pdf` | only with `--clusters` | Heatmap reordered and annotated by cluster |
 | `<prefix>.summary.txt` | only with `--clusters` | Per-cluster membership and within-group mean shared BUSCOs |
 
-The summary is also printed to stdout:
+The summary is also printed to stdout.
 
+## real data example 
+We use the genome of Conyza bonariensis (GCA_049639985.1). This plant is an allotriploid (A+B+C) with 9 clusters of homeologous chromosomes. We assume we are blind regarding ploidy and number of clusters.
+
+Fist, we run BUSCO to get the `full_table.txt`:
+
+```bash
+busco -i GCA_049639985.1_ConBo_ref_v01_genomic.fna -m genome -l eudicotyledons_odb12 -o ConBo_busco -c 16
 ```
---- Homeolog groups (k = 8 clusters) ---
-  Cluster 1 [n=2, within mean=275.0]: chr1, chr4
-  Cluster 2 [n=4, within mean=75.7]: chr2, chr12, chr17, chr18
-  ...
-===============================
+
+```bash
+Rscript presubphaser.r --input full_table.tsv --output output --chrom_regex chr
 ```
+
+
 
 ## Notes
 
