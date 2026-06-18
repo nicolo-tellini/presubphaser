@@ -67,7 +67,7 @@ Rscript presubphaser.r --input full_table.tsv --output eriogonum --chrom_regex c
 The summary is also printed to stdout.
 
 ## real data example 
-We use the genome of Conyza bonariensis (GCA_049639985.1). This plant is a hexaploid with 9 clusters of homeologous chromosomes. We assume we are blind regarding ploidy and number of clusters. In this example, we use Hap 1, which contains a collapsed set of chromosomes for each parental genome. How do we group homeologs? For convenience, homeologs are labeled so it is easier to follow the grouping.
+We use the genome of Conyza bonariensis (GCA_049639985.1). This plant is a hexaploid with 9 clusters of homeologous chromosomes. We assume we are blind regarding ploidy and number of clusters. In this example, we use Hap 1, which contains a set of chromosomes for each parental genome. How do we group homeologs? For convenience, homeologs are labeled so it is easier to follow the grouping.
 
 Fist, we run BUSCO to get the `full_table.txt`:
 
