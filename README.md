@@ -97,7 +97,7 @@ Rscript presubphaser.r --input full_table.tsv --output output --chrom_regex CM11
 
 <img width="1040" height="1050" alt="Screenshot from 2026-06-18 08-14-28" src="https://github.com/user-attachments/assets/2b82679e-7876-49ba-a296-da39b24fcaa6" />
 
-We use single-copy BUSCO genes as anchors to identify homologous chromosome pairs across the assembly. Each cell reports the number of shared BUSCOs between a chromosome tripplet. The strong diagonal signal confirms that homologs are correctly identified, with minimal cross-chromosome sharing (off-diagonal). Please note, **chr3A** has a low spread signal; **chr6B/chr6C** share ~111–124 BUSCOs with **chr1A** (off-diagonal) which is worth investigating, could be a translocation or assembly artifact and **chr5B** is notably smaller (42 BUSCOs), pheraps a smaller chromosome or partial assembly. 
+We use single-copy BUSCO genes as anchors to identify homologous chromosome pairs across the assembly. Each cell reports the number of shared BUSCOs between a chromosome triplet. The strong diagonal signal confirms that homologs are correctly identified, with minimal cross-chromosome sharing (off-diagonal). Please note, **chr3A** has a low spread signal; **chr6B/chr6C** share ~111–124 BUSCOs with **chr1A** (off-diagonal) which is worth investigating, could be a translocation or assembly artifact and **chr5B** is notably smaller (42 BUSCOs), pheraps a smaller chromosome or partial assembly. Off-diagonal are all good and exepected as they might represents issues in the de novo assembly but also reflcte the evolutionary history of different parental subgenomes.   
 
 ## Notes
 
