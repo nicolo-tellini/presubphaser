@@ -2,7 +2,7 @@
 # Title: Homeologue Pairing via Shared BUSCO Genes
 # Author: Nicolò T.
 # Status: Draft
-# Usage: Rscript busco_heatmap.R --input full_table.tsv --output table_hom_pairing [--chrom_regex SUPER]
+# Usage: Rscript presubphaser.r --input full_table.tsv --output table_hom_pairing [--chrom_regex SUPER]
 
 # Options ----
 options(warn = 1)
@@ -27,18 +27,13 @@ option_list <- list(
               type    = "character",
               default = "SUPER",
               help    = "Regex pattern to filter chromosome/sequence names [default: %default]",
-              metavar = "REGEX"),
-  make_option(c("-k", "--clusters"),
-              type    = "integer",
-              default = NULL,
-              help    = "Number of clusters (optional; if omitted only the heatmap and matrix are produced)",
-              metavar = "INT")
+              metavar = "REGEX")
 )
 
 parser <- OptionParser(
-  usage       = "%prog --input FILE --output PREFIX [--chrom_regex REGEX] [--clusters K]",
+  usage       = "%prog --input FILE --output PREFIX [--chrom_regex REGEX]",
   option_list = option_list,
-  description = "Compute homeologue pairing across chromosomes via shared single-copy BUSCO genes."
+  description = "Compute the matrix of single-copy BUSCO genes shared between chromosomes, as input for homeologue pairing."
 )
 
 opt <- parse_args(parser)
@@ -59,7 +54,6 @@ if (!file.exists(opt$input)) {
 table_file   <- opt$input
 out_prefix   <- opt$output
 chrom_regex  <- opt$chrom_regex
-n_clusters   <- opt$clusters
 
 
 # Libraries ----
@@ -127,87 +121,3 @@ pheatmap(shared_lower,
          border_color    = NA,
          number_color    = "black")
 invisible(dev.off())
-
-# Clustering (only if --clusters is provided) ----
-if (!is.null(n_clusters)) {
-
-  max_shared          <- max(shared[shared > 0])
-  dist_mat            <- as.dist(1 - shared / max_shared)
-  hc                  <- hclust(dist_mat, method = "average")  # UPGMA
-  cluster_assignments <- cutree(hc, k = n_clusters)
-
-  # Write cluster assignments
-  clust_df   <- data.frame(
-    chromosome = names(cluster_assignments),
-    cluster    = cluster_assignments,
-    stringsAsFactors = FALSE
-  )
-  clust_df   <- clust_df[order(clust_df$cluster, clust_df$chromosome), ]
-  clust_file <- paste0(out_prefix, ".clusters.tsv")
-  write.table(clust_df, file = clust_file, sep = "\t", quote = FALSE, row.names = FALSE)
-
-  # Heatmap with cluster annotation
-  anno_row <- data.frame(
-    Cluster = factor(paste0("C", cluster_assignments)),
-    row.names = names(cluster_assignments)
-  )
-
-  nome_heatmap_clust <- paste0(out_prefix, ".heatmap_clustered.pdf")
-  pdf(nome_heatmap_clust, width = 16, height = 16)
-
-  ord              <- order(cluster_assignments, names(cluster_assignments))
-  shared_ord       <- shared[ord, ord]
-  shared_lower_ord <- shared_ord
-  shared_lower_ord[upper.tri(shared_lower_ord)] <- NA
-  diag(shared_lower_ord) <- NA
-  n2   <- nrow(shared_lower_ord)
-  num2 <- matrix("", n2, n2)
-  num2[lower.tri(shared_lower_ord, diag = FALSE)] <-
-    shared_lower_ord[lower.tri(shared_lower_ord, diag = FALSE)]
-
-  pheatmap(shared_lower_ord,
-           cluster_rows    = FALSE,
-           cluster_cols    = FALSE,
-           color           = col,
-           na_col          = "white",
-           display_numbers = num2,
-           border_color    = NA,
-           number_color    = "black",
-           annotation_row  = anno_row[rownames(shared_lower_ord), , drop = FALSE],
-           annotation_col  = anno_row[colnames(shared_lower_ord), , drop = FALSE],
-           main            = paste0("Chromosomes ordered by cluster (k=", n_clusters, ")"))
-  invisible(dev.off())
-
-  # Homeolog group summary
-  idx      <- which(lower.tri(shared), arr.ind = TRUE)
-  pairs_df <- data.frame(
-    chr1   = rownames(shared)[idx[, 1]],
-    chr2   = colnames(shared)[idx[, 2]],
-    shared = shared[idx],
-    stringsAsFactors = FALSE
-  )
-
-  lines <- sprintf("--- Homeolog groups (k = %d clusters) ---", n_clusters)
-  for (g in sort(unique(cluster_assignments))) {
-    members <- names(cluster_assignments[cluster_assignments == g])
-    if (length(members) > 1) {
-      sub_vals    <- pairs_df$shared[pairs_df$chr1 %in% members & pairs_df$chr2 %in% members]
-      within_mean <- round(mean(sub_vals), 1)
-    } else {
-      within_mean <- NA
-    }
-    lines <- c(lines,
-      sprintf("  Cluster %d [n=%d, within mean=%s]: %s",
-              g, length(members),
-              ifelse(is.na(within_mean), "NA", sprintf("%.1f", within_mean)),
-              paste(members, collapse = ", ")))
-  }
-  lines <- c(lines, "===============================")
-
-  summary_text <- paste(lines, collapse = "\n")
-  cat("\n", summary_text, "\n\n")
-
-  summary_file <- paste0(out_prefix, ".summary.txt")
-  writeLines(summary_text, summary_file)
-
-}
