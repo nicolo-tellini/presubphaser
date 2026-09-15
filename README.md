@@ -2,7 +2,7 @@
 
 Homeologue pairing via shared single-copy BUSCO genes.
 
-`presubphaser` takes a BUSCO `full_table.tsv` from a polyploid assembly and counts, for every pair of chromosomes, how many BUSCO genes they have in common. Homeologous chromosomes — the copies inherited from the two (or more) subgenomes of an allopolyploid — share more BUSCOs with each other than with any other chromosome; the resulting matrix makes the pairing visible.
+`presubphaser` takes a BUSCO `full_table.tsv` from a polyploid assembly and counts, for every pair of chromosomes, how many BUSCO genes they have in common. Homeologous chromosomes (the copies inherited from the two (or more) subgenomes of an allopolyploid) share more BUSCOs with each other than with any other chromosome; the resulting matrix makes the pairing visible.
 
 The output is the input that [SubPhaser](https://github.com/zhangrengang/SubPhaser) expects: SubPhaser polarises homeologous groups into subgenomes, it does not infer the groups themselves.
 
