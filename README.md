@@ -1,14 +1,26 @@
 # presubphaser
 
-Identify homeologous chromosome groups from BUSCO results by computing pairwise shared single-copy gene counts across chromosomes and visualising them as a heatmap.
+Homeologue pairing via shared single-copy BUSCO genes.
+
+`presubphaser` takes a BUSCO `full_table.tsv` from a polyploid assembly and counts, for every pair of chromosomes, how many BUSCO genes they have in common. Homeologous chromosomes — the copies inherited from the two (or more) subgenomes of an allopolyploid — share more BUSCOs with each other than with any other chromosome; the resulting matrix makes the pairing visible.
+
+The output is the input that [SubPhaser](https://github.com/zhangrengang/SubPhaser) expects: SubPhaser polarises homeologous groups into subgenomes, it does not infer the groups themselves.
 
 ## Method
 
-For each pair of chromosomes, the script counts how many single-copy BUSCO genes are present on both (Complete or Duplicated status). This produces a symmetric matrix where high values indicate strong homeology. The matrix is displayed as a lower-triangle heatmap. Optionally, chromosomes are grouped via hierarchical clustering (UPGMA) on the shared-BUSCO distance matrix.
+Each BUSCO annotated as `Complete` or `Duplicated` is reduced to the set of chromosomes it was found on, one entry per BUSCO per chromosome. From this a presence/absence matrix is built, and the number of BUSCOs shared by each pair of chromosomes is obtained as its cross-product.
+
+The matrix is written as a TSV and drawn as a lower-triangular heatmap with the counts printed in the cells. Homeologous pairs stand out as isolated high-count cells off the diagonal.
+
+Assigning the pairs is left to the user: reading them off the heatmap is fast, unambiguous where the signal is clean. Chromosomes involved in translocations or in a whole-genome duplication older than the allopolyploid event produce several comparable counts instead of one, and those need to be investigated separately.
 
 ## Requirements
 
-R ≥ 4.0 with the following packages:
+R ≥ 4.0 with:
+
+- `optparse`
+- `gtools`
+- `pheatmap`
 
 ```r
 install.packages(c("optparse", "gtools", "pheatmap"))
@@ -16,93 +28,62 @@ install.packages(c("optparse", "gtools", "pheatmap"))
 
 ## Input
 
-The `full_table.tsv` file produced by [BUSCO](https://busco.ezlab.org/) (v5+). It is the per-sequence summary table found inside the BUSCO output directory:
+The `full_table.tsv` produced by BUSCO in genome mode, found in the run directory as `run_<lineage>/full_table.tsv`. Only the first three columns are used: BUSCO id, status, and sequence name.
 
+Run BUSCO on the assembly you want to phase, with a lineage appropriate for the clade:
+
+```bash
+busco -i assembly.fa -l eudicots_odb10 -m genome -c 16 -o busco_out
 ```
-busco_output/
-└── run_<lineage>/
-    └── full_table.tsv   ← this file
-```
-It is reccomended using latest busco dataset (v12).
 
 ## Usage
 
 ```bash
-Rscript presubphaser.r --input full_table.tsv --output <prefix> [--chrom_regex <regex>] [--clusters <k>]
+Rscript presubphaser.r --input full_table.tsv --output PREFIX [--chrom_regex REGEX]
 ```
 
-### Arguments
+## Arguments
 
 | Flag | Short | Required | Default | Description |
 |---|---|---|---|---|
-| `--input` | `-i` | yes | — | Path to BUSCO `full_table.tsv` |
-| `--output` | `-o` | yes | — | Output prefix (no extension) |
-| `--chrom_regex` | `-r` | no | `chr` | Regex to filter sequence names |
-| `--clusters` | `-k` | no | — | Number of homeolog groups; if omitted clustering is skipped |
+| `--input` | `-i` | yes | — | Path to the BUSCO `full_table.tsv` |
+| `--output` | `-o` | yes | — | Output prefix, without extension |
+| `--chrom_regex` | `-r` | no | `SUPER` | Regex selecting which sequence names to keep |
+
+`--chrom_regex` is what keeps unplaced contigs out of the matrix. Set it to whatever prefix your
+chromosome-level sequences carry — `SUPER` for a Pretext/YaHS-curated assembly, `chr` if you have
+renamed them, `.` to keep everything.
 
 ## Examples
 
-Produce only the heatmap and matrix, then inspect the PDF manually to choose the number of groups:
+Chromosomes named `SUPER_1` … `SUPER_18`:
 
 ```bash
-Rscript presubphaser.r --input full_table.tsv --output output --chrom_regex chr
+Rscript presubphaser.r -i run_eudicots_odb10/full_table.tsv -o hom_pairing
 ```
 
-Once you have decided on a number of groups, run again with `--clusters`:
+Chromosomes renamed to `chr1` … `chr18`:
 
 ```bash
-Rscript presubphaser.r --input full_table.tsv --output eriogonum --chrom_regex chr --clusters 8
+Rscript presubphaser.r -i run_eudicots_odb10/full_table.tsv -o hom_pairing -r "^chr"
 ```
 
 ## Output
 
-| File | Always produced | Description |
-|---|---|---|
-| `<prefix>.shared_matrix.tsv` | yes | Symmetric matrix of shared BUSCO counts |
-| `<prefix>.heatmap.pdf` | yes | Lower-triangle heatmap (original chromosome order) |
-| `<prefix>.clusters.tsv` | only with `--clusters` | Table of chromosome → cluster assignments |
-| `<prefix>.heatmap_clustered.pdf` | only with `--clusters` | Heatmap reordered and annotated by cluster |
-| `<prefix>.summary.txt` | only with `--clusters` | Per-cluster membership and within-group mean shared BUSCOs |
-
-The summary is also printed to stdout.
-
-## real data example 
-We use the genome of Conyza bonariensis (GCA_049639985.1). This plant is a hexaploid with 9 clusters of homeologous chromosomes. We assume we are blind regarding ploidy and number of clusters. In this example, we use Hap 1, which contains a set of chromosomes for each parental genome. How do we group homeologs? For convenience, homeologs are labeled so it is easier to follow the grouping.
-
-Fist, we run BUSCO to get the `full_table.txt`:
-
-```bash
-busco -i GCA_049639985.1_ConBo_ref_v01_genomic.fna -m genome -l eudicotyledons_odb12 -o ConBo_busco -c 16
-```
-result:
-```
-    -------------------------------------------------------------------------------------------
-    -------------------------------------------------------------------------------------------
-    |Results from dataset eudicotyledons_odb12                                                 |
-    -------------------------------------------------------------------------------------------
-    |C:99.6%[S:8.8%,D:90.8%],F:0.1%,M:0.2%,n:2805,E:1.4%                                       |
-    |2794    Complete BUSCOs (C)    (of which 38 contain internal stop codons)                 |
-    |248    Complete and single-copy BUSCOs (S)                                                |
-    |2546    Complete and duplicated BUSCOs (D)                                                |
-    |4    Fragmented BUSCOs (F)                                                                |
-    |7    Missing BUSCOs (M)                                                                   |
-    |2805    Total BUSCO groups searched                                                       |
-    -------------------------------------------------------------------------------------------
-```
-
-Then, we run `presubphaser.r` with minimum settings. The --chrom_regex corresponds to the tag on the fasta entry
-```bash
-Rscript presubphaser.r --input full_table.tsv --output output --chrom_regex CM112840
-```
-
-<img width="1040" height="1050" alt="Screenshot from 2026-06-18 08-14-28" src="https://github.com/user-attachments/assets/2b82679e-7876-49ba-a296-da39b24fcaa6" />
-
-We use single-copy BUSCO genes as anchors to identify homologous chromosome pairs across the assembly. Each cell reports the number of shared BUSCOs between a chromosome triplet. The strong diagonal signal confirms that homologs are correctly identified, with minimal cross-chromosome sharing (off-diagonal). Please note, **chr3A** has a low spread signal; **chr6B/chr6C** share ~111–124 BUSCOs with **chr1A** (off-diagonal) which is worth investigating, could be a translocation or assembly artifact and **chr5B** is notably smaller (42 BUSCOs), pheraps a smaller chromosome or partial assembly. Off-diagonal are all good and exepected as they might represents issues in the de novo assembly but also reflcte the evolutionary history of different parental subgenomes.   
+| File | Description |
+|---|---|
+| `PREFIX.shared_matrix.tsv` | Square matrix of BUSCOs shared between every pair of chromosomes |
+| `PREFIX.heatmap.pdf` | Lower-triangular heatmap of the same matrix, counts printed in the cells |
 
 ## Notes
 
-This script and documentation were developed with the assistance of Claude (Anthropic). All code was reviewed and validated by the author.
+- A BUSCO found more than once on the same chromosome is counted once: the matrix measures shared gene
+  content between chromosomes, not copy number within them.
+- The diagonal holds the number of BUSCOs on each chromosome and is blanked in the heatmap so that the
+  colour scale is set by the off-diagonal counts.
+- A clean allotetraploid gives one dominant partner per chromosome and a one-to-one pairing. Quartets of
+  chromosomes with comparable counts, rather than pairs, point to a translocation or to an older duplication
+  layered under the allopolyploid event — worth resolving with synteny before passing anything to SubPhaser.
+- Very low counts across the whole matrix usually mean the regex is keeping fragmented scaffolds, or that
+  the BUSCO lineage is too distant for the clade.# presubphaser
 
-- Only sequences whose names match `--chrom_regex` are retained. Adjust the regex to exclude unanchored scaffolds (e.g. `chr`).
-- Clustering uses UPGMA (`hclust(..., method = "average")`) on a distance matrix defined as `1 - (shared / max_shared)`.
-- Duplicated BUSCO hits are intentionally included: a BUSCO marked Duplicated across two chromosomes is the core signal of homeology. The `unique()` call only collapses redundant hits of the same BUSCO on the same chromosome (multiple alignment positions on a single sequence), so counts are not inflated.
